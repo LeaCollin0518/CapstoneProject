@@ -14,9 +14,6 @@ done
 for zipfile in *zip; do
 	newdir="${zipfile%.zip}"
 
-	unzip "${zipfile}" -d "${newdir}"
+	unzip "${zipfile}"
 	rm "${zipfile}"
-
-	mv "${__DIR__}/epa_data/${newdir}/"*.csv "${__DIR__}/epa_data"
-	rm -rf "${__DIR__}/epa_data/${newdir}"
 done
