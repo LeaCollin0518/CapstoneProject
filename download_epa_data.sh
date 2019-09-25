@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 __DIR__="$(dirname "$(readlink -f ${BASH_SOURCE[0]})")" # directory of this script
-mkdir -p "${__DIR__}/epa_data"
-cd "${__DIR__}/epa_data"
+mkdir -p "${__DIR__}/Data/epa_data"
+cd "${__DIR__}/Data/epa_data"
 
 epa_url='https://aqs.epa.gov/aqsweb/airdata/daily_88101_'
 

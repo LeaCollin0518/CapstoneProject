@@ -4,5 +4,5 @@ Exposure to air pollution is a major global public health concern. One of the ma
 
 ### The `download_epa_data.sh` file
 
-Downloads the data. It will create a directory called **epa_data** wherever you run the script and download all of the EPA csv files from 2000 to 2016 and place them in this directory.
+downloads the data. It will create a directory and subdirectory called **Data/epa_data** from wherever the script is run. It will download all of the EPA csv files from 2000 to 2016 and place them in this directory. If you already have a **Data** directory in the same directory as this script, it will simply create the **epa_data** directory inside.
 Simply run **./download_epa_data.sh** in whichever directory you would like the **epa_data** directory to be created.
