@@ -8,12 +8,9 @@ epa_url='https://aqs.epa.gov/aqsweb/airdata/daily_88101_'
 
 for i in `seq 2000 2016`; do
 	curl -OL "${epa_url}$i.zip"
-
 done
 
 for zipfile in *zip; do
-	newdir="${zipfile%.zip}"
-
 	unzip "${zipfile}"
 	rm "${zipfile}"
 done
