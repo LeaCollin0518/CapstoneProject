@@ -23,6 +23,10 @@ require(dplyr); require(RColorBrewer); require(ggplot2)
 require(mapdata); require(maptools)
 library(raster) 
 library(dismo)
+library(leaflet); library(rgeos)
+library(leaflet.extras)
+library(rgdal)
+library(mapview); library(webshot)
 
 library(data.table)
 
@@ -146,7 +150,7 @@ ca.jan.01.2016 %>% as.data.frame %>%
   coord_fixed(xlim = c(-124.18, -115.49),  ylim = c(32.64, 41.73), ratio = 1.1) +
   geom_point(aes(x = Longitude, y = Latitude, color=Arithmetic.Mean), size = 3, alpha=3/4) + 
   scale_colour_gradientn(colours = terrain.colors(20)) +
-  ggtitle("True PM 2.5") + coord_equal() + theme_bw()
+  ggtitle("True PM 2.5 - Jan 01 2016") + coord_equal() + theme_bw()
 
 ca_epa_jan <- ca_epa %>% filter(month(Date.Local) == '1') %>% dplyr::select(Site.Num, Latitude, Longitude, Arithmetic.Mean, subregion)
 ca_epa_jan <- data.frame(aggregate(ca_epa_jan$Arithmetic.Mean, list(ca_epa_jan$Latitude, ca_epa_jan$Longitude), mean))
@@ -162,3 +166,53 @@ ca_epa_jan %>% as.data.frame %>%
   geom_point(aes(x = Longitude, y = Latitude, color=PM2.5), size = 3, alpha=3/4) +
   scale_colour_gradientn(colours = terrain.colors(20)) +
   ggtitle("True PM 2.5 - Jan 2016") + coord_equal() + theme_bw()
+
+### MAPPING PREDICTIONS FOR CALIFORNIA
+r = raster("plotting/GWR_PM25_NA_200501_200712-RH35-NoNegs.asc/GWR_PM25_NA_200501_200712-RH35-NoNegs.asc")
+
+
+states <- rgdal::readOGR("plotting/tl_2017_us_state/tl_2017_us_state.shp")
+states.ca <- states[states$STUSPS == "CA",]
+bbox(states.ca)
+
+e <- as(extent(-124.5, -114, 32.6, 42), 'SpatialPolygons')
+# extent format (xmin,xmax,ymin,ymax)
+
+pmdat.ca <- crop(r, e)
+pmdat.ca[pmdat.ca < 0] <- NA
+
+load("plotting/annual_USA_072717.RData")
+dtam.2006 <- na.omit(annual.allobs[which(annual.allobs$year == 2006 & annual.allobs$state.code == "06"), 
+                                   c("latitude", "longitude", "year", "measured")])
+rm(annual.allobs)
+
+pal <- colorNumeric(rev(brewer.pal(n=11, name = "RdYlGn")), values(pmdat.ca),
+                    na.color = "transparent")
+
+m1 <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
+  addRasterImage(pmdat.ca, colors = pal, opacity = 0.5) %>%
+  addLegend(pal = pal, values = values(pmdat.ca),
+            title = "PM2.5") %>%
+  addCircleMarkers(lng = dtam.2006$longitude, # we feed the longitude coordinates 
+                   lat = dtam.2006$latitude,
+                   radius = 3, 
+                   stroke = FALSE, 
+                   fillOpacity = 0.9, 
+                   color = pal(dtam.2006$measured)) %>%
+  fitBounds(-123.02407, 37.10732, -121.46928, 38.32121)
+
+m1
+
+m2 <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
+  # addRasterImage(pmdat.ca, colors = pal, opacity = 0.3) %>%
+  addLegend(pal = pal, values = values(pmdat.ca),
+            title = "PM2.5") %>%
+  addCircleMarkers(lng = dtam.2006$longitude, # we feed the longitude coordinates 
+                   lat = dtam.2006$latitude,
+                   radius = 4, 
+                   stroke = FALSE, 
+                   fillOpacity = 1, 
+                   color = pal(dtam.2006$measured)) %>%
+  fitBounds(-123.02407, 37.10732, -121.46928, 38.32121)
+
+m2
