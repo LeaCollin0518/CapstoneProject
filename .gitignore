@@ -2,3 +2,4 @@ Data/
 .Rproj.user
 birngInAirPoll.r
 errorsPlot.r
+*.Rproj
