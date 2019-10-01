@@ -85,6 +85,9 @@ ca_fips[null_cols] <- NULL
 counties <- map_data("county")
 ca_county <- subset(counties, region == "california")
 
+us_states <- map_data('state')
+ca_df <- subset(us_states, region == "california")
+
 ca_base <- ggplot(data = ca_df, mapping = aes(x = long, y = lat, group = group)) + 
   coord_fixed(1.3) + 
   geom_polygon(color = "black", fill = "gray") + 
@@ -110,34 +113,28 @@ ditch_the_axes <- theme(
   axis.title = element_blank()
 )
 
-elbow_room1 <- ca_base + 
+ca_jan_2016_county_plot <- ca_base + 
   geom_polygon(data = ca_pm25, aes(fill = mean_pm2.5), color = "white") +
   geom_polygon(color = "black", fill = NA) +
   scale_fill_gradientn(colours = terrain.colors(20)) +
   theme_bw() +
   ditch_the_axes
 
-elbow_room1
+ca_jan_2016_county_plot
 
 ### TRYING MORE STUFF
-pal <- colorNumeric(rev(brewer.pal(n=11, name = "RdYlGn")), values(pmdat.ca),
-                    na.color = "transparent")
-
 ca.jan.01.2016 <- ca_epa %>% filter(Date.Local == '2016-01-01')
-coordinates(ca.jan.01.2016) <- ~ Longitude + Latitude
 
 states <- rgdal::readOGR("plotting/tl_2017_us_state/tl_2017_us_state.shp")
 states <- states[states$STUSPS %in% c('CA'),] 
-bbox(ca.jan.01.2016)
-
-mycol.palette <- colorRampPalette(c("blue", "green","yellow",  "orange", "red"), space = "rgb")
+bbox(states)
 
 ca.jan.01.2016 %>% as.data.frame %>% 
   ggplot() + geom_polygon(data = states, 
                           aes(x=long, y = lat, group = group), 
                           fill = "white", 
                           color="black") +
-  coord_fixed(xlim = c(-124.18, -115.49),  ylim = c(32.64, 41.73), ratio = 1.1) +
+  coord_fixed(xlim = c(-124.50, -114.14),  ylim = c(32.64, 42.73), ratio = 1.1) +
   geom_point(aes(x = Longitude, y = Latitude, color=Arithmetic.Mean), size = 3, alpha=3/4) + 
   scale_colour_gradientn(colours = terrain.colors(20)) +
   ggtitle("True PM 2.5 - Jan 01 2016") + coord_equal() + theme_bw()
@@ -160,16 +157,23 @@ ca_epa_jan %>% as.data.frame %>%
 ### MAPPING PREDICTIONS FOR CALIFORNIA
 r = raster("plotting/GWR_PM25_NA_200501_200712-RH35-NoNegs.asc/GWR_PM25_NA_200501_200712-RH35-NoNegs.asc")
 
-
-states <- rgdal::readOGR("plotting/tl_2017_us_state/tl_2017_us_state.shp")
-states.ca <- states[states$STUSPS == "CA",]
-bbox(states.ca)
+ca.jan.01.2016 <- ca_epa %>% filter(Date.Local == '2016-01-01')
+coordinates(ca.jan.01.2016) <- ~ Longitude + Latitude
 
 e <- as(extent(-124.5, -114, 32.6, 42), 'SpatialPolygons')
 # extent format (xmin,xmax,ymin,ymax)
 
 pmdat.ca <- crop(r, e)
 pmdat.ca[pmdat.ca < 0] <- NA
+
+pal <- colorNumeric(rev(brewer.pal(n=11, name = "RdYlGn")), values(pmdat.ca),
+                    na.color = "transparent")
+
+pal2 <- colorNumeric(rev(brewer.pal(n=11, name = "RdYlGn")), ca_epa_jan$PM2.5,
+                    na.color = "transparent")
+
+pal3 <- colorNumeric(rev(brewer.pal(n=11, name = "RdBu")), ca_epa_jan$PM2.5,
+                             na.color = "transparent")
 
 load("plotting/annual_USA_072717.RData")
 dtam.2006 <- na.omit(annual.allobs[which(annual.allobs$year == 2006 & annual.allobs$state.code == "06"), 
@@ -205,29 +209,43 @@ m2 <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
 m2
 
 m3 <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
-  addRasterImage(pmdat.ca, colors = pal, opacity = 0.5) %>%
-  addLegend(pal = pal, values = values(pmdat.ca),
+  addRasterImage(pmdat.ca, colors = pal2, opacity = 0.5) %>%
+  addLegend(pal = pal2, values = ca_epa_jan$PM2.5,
             title = "PM2.5") %>%
   addCircleMarkers(lng = ca_epa_jan$Longitude, # we feed the longitude coordinates 
                    lat = ca_epa_jan$Latitude,
                    radius = 3, 
                    stroke = FALSE, 
                    fillOpacity = 0.9, 
-                   color = pal(ca_epa_jan$PM2.5)) %>%
+                   color = pal2(ca_epa_jan$PM2.5)) %>%
   fitBounds(-123.02407, 37.10732, -121.46928, 38.32121)
 
 m3
 
 m4 <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
   # addRasterImage(pmdat.ca, colors = pal, opacity = 0.3) %>%
-  addLegend(pal = pal, values = values(pmdat.ca),
+  addLegend(pal = pal2, values = ca_epa_jan$PM2.5,
             title = "PM2.5") %>%
   addCircleMarkers(lng = ca_epa_jan$Longitude, # we feed the longitude coordinates 
                    lat = ca_epa_jan$Latitude,
                    radius = 4, 
                    stroke = FALSE, 
                    fillOpacity = 1, 
-                   color = pal(ca_epa_jan$PM2.5)) %>%
+                   color = pal2(ca_epa_jan$PM2.5)) %>%
   fitBounds(-123.02407, 37.10732, -121.46928, 38.32121)
 
 m4
+
+m5 <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
+  # addRasterImage(pmdat.ca, colors = pal, opacity = 0.3) %>%
+  addLegend(pal = pal3, values = ca_epa_jan$PM2.5,
+            title = "PM2.5") %>%
+  addCircleMarkers(lng = ca_epa_jan$Longitude, # we feed the longitude coordinates 
+                   lat = ca_epa_jan$Latitude,
+                   radius = 4, 
+                   stroke = FALSE, 
+                   fillOpacity = 1, 
+                   color = pal3(ca_epa_jan$PM2.5)) %>%
+  fitBounds(-123.02407, 37.10732, -121.46928, 38.32121)
+
+m5
