@@ -1,32 +1,27 @@
-library(tidyverse)
 require(RColorBrewer); require(ggplot2)
 require(mapdata); require(maptools)
-library(raster); library(zipcode) 
+require("plyr"); require(dplyr)
+library(tidyverse)
+library(raster)
+library(zipcode) 
 library(choroplethr)
 library(rgdal)
 library(ggmap)
 library(sp)
-require("plyr"); require(dplyr)
 library(tgp)
 library(mgcv)
 library(gstat)
 library(automap)
-library(raster) 
 library(dismo)
-library(ggplot2)
 library(maps)
 library(mapdata)
-library(sp)
 library(gstat)
-library(automap)
-require(dplyr); require(RColorBrewer); require(ggplot2)
-require(mapdata); require(maptools)
-library(raster) 
-library(dismo)
-library(leaflet); library(rgeos)
+library(leaflet)
+library(rgeos)
 library(leaflet.extras)
 library(rgdal)
-library(mapview); library(webshot)
+library(mapview)
+library(webshot)
 
 library(data.table)
 
@@ -87,20 +82,12 @@ ca_fips$match.area.name <- str_match(ca_fips$Area.Name, county_pattern)[,2]
 null_cols <- c('Summary.Level', 'State.Code', 'County.Subdivision.Code', 'Place.Code.Fips', 'Consolidated.City.Code', 'Area.Name')
 ca_fips[null_cols] <- NULL
 
-usa <- map_data("usa")
-w2hr <- map_data("world2")
-
-states <- map_data("state")
-ca_df <- subset(states, region == "california")
 counties <- map_data("county")
 ca_county <- subset(counties, region == "california")
 
 ca_base <- ggplot(data = ca_df, mapping = aes(x = long, y = lat, group = group)) + 
   coord_fixed(1.3) + 
-  geom_polygon(color = "black", fill = "gray")
-ca_base
-
-ca_base + 
+  geom_polygon(color = "black", fill = "gray") + 
   geom_polygon(data = ca_county, fill = NA, color = "white") +
   geom_polygon(color = "black", fill = NA)
 
@@ -133,6 +120,9 @@ elbow_room1 <- ca_base +
 elbow_room1
 
 ### TRYING MORE STUFF
+pal <- colorNumeric(rev(brewer.pal(n=11, name = "RdYlGn")), values(pmdat.ca),
+                    na.color = "transparent")
+
 ca.jan.01.2016 <- ca_epa %>% filter(Date.Local == '2016-01-01')
 coordinates(ca.jan.01.2016) <- ~ Longitude + Latitude
 
@@ -186,9 +176,6 @@ dtam.2006 <- na.omit(annual.allobs[which(annual.allobs$year == 2006 & annual.all
                                    c("latitude", "longitude", "year", "measured")])
 rm(annual.allobs)
 
-pal <- colorNumeric(rev(brewer.pal(n=11, name = "RdYlGn")), values(pmdat.ca),
-                    na.color = "transparent")
-
 m1 <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
   addRasterImage(pmdat.ca, colors = pal, opacity = 0.5) %>%
   addLegend(pal = pal, values = values(pmdat.ca),
@@ -216,3 +203,31 @@ m2 <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
   fitBounds(-123.02407, 37.10732, -121.46928, 38.32121)
 
 m2
+
+m3 <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
+  addRasterImage(pmdat.ca, colors = pal, opacity = 0.5) %>%
+  addLegend(pal = pal, values = values(pmdat.ca),
+            title = "PM2.5") %>%
+  addCircleMarkers(lng = ca_epa_jan$Longitude, # we feed the longitude coordinates 
+                   lat = ca_epa_jan$Latitude,
+                   radius = 3, 
+                   stroke = FALSE, 
+                   fillOpacity = 0.9, 
+                   color = pal(ca_epa_jan$PM2.5)) %>%
+  fitBounds(-123.02407, 37.10732, -121.46928, 38.32121)
+
+m3
+
+m4 <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
+  # addRasterImage(pmdat.ca, colors = pal, opacity = 0.3) %>%
+  addLegend(pal = pal, values = values(pmdat.ca),
+            title = "PM2.5") %>%
+  addCircleMarkers(lng = ca_epa_jan$Longitude, # we feed the longitude coordinates 
+                   lat = ca_epa_jan$Latitude,
+                   radius = 4, 
+                   stroke = FALSE, 
+                   fillOpacity = 1, 
+                   color = pal(ca_epa_jan$PM2.5)) %>%
+  fitBounds(-123.02407, 37.10732, -121.46928, 38.32121)
+
+m4
