@@ -3,3 +3,4 @@ Data/
 birngInAirPoll.r
 errorsPlot.r
 *.Rproj
+.DS_Store
