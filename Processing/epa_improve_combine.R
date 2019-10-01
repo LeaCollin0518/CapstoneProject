@@ -19,12 +19,13 @@ for(year in years){
                                                suffix = c("_epa", "_improve"))
   
   combined_data$source <- ""
-  combined_data$source[!is.na(combined_data$pm25_obs_epa) & !is.na(combined_data$pm25_obs_improve)] <- "Both"
+  combined_data$source[!is.na(combined_data$pm25_obs_epa) & !is.na(combined_data$pm25_obs_improve)] <- "EPA"
   combined_data$source[!is.na(combined_data$pm25_obs_epa) & is.na(combined_data$pm25_obs_improve)] <- "EPA"
   combined_data$source[is.na(combined_data$pm25_obs_epa) & !is.na(combined_data$pm25_obs_improve)] <- "Improve"
   
+  combined_data$pm25_obs <- combined_data$pm25_obs_epa
+  combined_data$pm25_obs[is.na(combined_data$pm25_obs)] <- combined_data$pm25_obs_improve[is.na(combined_data$pm25_obs)]
   
-  combined_data <- combined_data %>% mutate(pm25_obs = rowMeans(combined_data[,3:4], na.rm = TRUE))
   combined_data <- combined_data %>% select(Date, uid, source, pm25_obs)
   
   epa_info <- epa_year %>% select(uid, Latitude, Longitude, State.Code, County.Code) %>% unique() %>% mutate(source="EPA")

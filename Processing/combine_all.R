@@ -12,4 +12,4 @@ for(year in years[2:length(years)]){
 }
 
 nrow(data_all)==nrow(data_all %>% select(uid, Date) %>% unique())
-saveRDS(data_all, file="pm25_observed_2000_2016")
+saveRDS(data_all, file="pm25_observed_2000_2016.rds")
