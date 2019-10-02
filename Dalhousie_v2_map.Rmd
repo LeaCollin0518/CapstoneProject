@@ -1,0 +1,213 @@
+---
+title: "PM_map_Dalhousie"
+author: "Danielle Su (ds3731)"
+date: "9/30/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE,
+                      message = TRUE, 
+                      cache = TRUE)
+
+require(RColorBrewer); require(ggplot2)
+require(mapdata); require(maptools)
+require("plyr"); require(dplyr)
+library(tidyverse)
+library(raster)
+library(zipcode) 
+library(choroplethr)
+library(rgdal)
+library(ggmap)
+library(sp)
+library(tgp)
+library(mgcv)
+library(gstat)
+library(automap)
+library(dismo)
+library(maps)
+library(mapdata)
+library(leaflet)
+# library(rgeos)
+# library(leaflet.extras)
+# library(mapview)
+# library(webshot)
+library(data.table)
+library(leaflet)
+library(viridis)
+# setwd("~proj/capstone/CapstoneProject/Data")
+```
+
+## Downloading fips_codes and shapefiles
+
+```{r}
+# EXAMPLE MAPPING
+fips_codes <- read.csv('/Users/daniellesu/proj/capstone/CapstoneProject/Data/fips_codes_AtoM.csv', header = TRUE, colClasses = rep('character', ncol(fips_codes)))
+
+names(fips_codes) <- c('Summary.Level', 'State.Code', 'County.Code', 'Tract.Code', 'State.Name', 'County.Name', 'Tract.Name')
+```
+
+
+```{r}
+# CALIFORNIA
+ca_fips <- fips_codes %>% filter(State.Code == '06')
+ca_fips$State.Name <- sapply(ca_fips$State.Name, tolower)
+ca_fips <- ca_fips %>% filter(County.Code != '000')
+```
+
+## Dalhousie Data
+
+```{r}
+r_012016 <- raster("/Users/daniellesu/proj/capstone/CapstoneProject/Data/GWRwSPEC_PM25_NA_201601_201601-RH35-NoNegs.asc/GWRwSPEC_PM25_NA_201601_201601-RH35-NoNegs.asc")
+
+class(r_012016)
+dim(r_012016)
+```
+
+
+```{r}
+shape_file <- "gz_2010_06_140_00_500k"
+shape_file_dir <- paste0("/Users/daniellesu/proj/capstone/CapstoneProject/Data/", shape_file)
+raw_tract <- readOGR(dsn = shape_file_dir, layer = shape_file)
+
+# crop the data
+pmdat_0116 <- crop(r_012016, raw_tract)
+```
+
+```{r}
+# class(pmdat)
+# pmdat
+# head(coordinates(pmdat))
+# tail(coordinates(pmdat))
+# head(values(pmdat))
+# summary(values(pmdat))
+# summary(values(pmdat)[which(values(pmdat)>0)])
+# pmdat2 <- raster::extract(pmdat, # the raster that you wish to extract values from
+#                           raw_tract, # a point, or polygon spatial object
+#                           buffer = .1, # specify a .5 degree radius
+#                           fun = mean, # extract the MEAN value from each plot
+#                           sp = TRUE) # create spatial object
+
+# class(pmdat_0116)
+# head(coordinates(pmdat_0116))
+# head(values(pmdat_0116))
+# summary(values(pmdat_0116))
+# summary(values(pmdat_0116)[which(values(pmdat)>0)])
+pmdat_extract_0116 <- raster::extract(pmdat_0116, # the raster that you wish to extract values from
+                                      raw_tract, # a point, or polygon spatial object
+                                      buffer = .1, # specify a .5 degree radius
+                                      fun = mean, # extract the MEAN value from each plot
+                                      sp = TRUE) # create spatial object
+
+```
+## Exploring Extraction
+```{r}
+class(pmdat_extract_0116)
+pmdat_extract_0116@data %>% glimpse
+summary(pmdat_extract_0116)
+names(pmdat_extract_0116)[8] <- "PM25"
+pmdat_extract_0116$PM25 <- ifelse(pmdat_extract_0116$PM25 < 0, NA, pmdat_extract_0116$PM25)
+```
+## January 2016 California Map!
+
+```{r}
+# pmdat.ca <- crop(r, e)
+# pmdat.ca[pmdat.ca < 0] <- NA
+# names(pmdat.ca)[8] <- "pm25_ca"
+
+pal_DH <- colorNumeric(rev(brewer.pal(n=11, name = "RdYlGn")), c(0,20), na.color = "transparent")
+RYG.palette <- brewer.pal(n = 11, name = "RdYlGn")
+YOR.palette <- brewer.pal(n = 9, name = "YlOrRd")
+simple.pal <- colorRampPalette(rev(brewer.pal(n=11, name = "RdYlGn")))
+
+spplot(pmdat_extract_0116, "PM25", 
+        main = "California - PM2.5",
+        sub = "V2 Dalhousie Predictions", 
+        col = "transparent")
+```
+
+
+```{r}
+png("/Users/daniellesu/proj/capstone/CapstoneProject/Images/DH_CA_0116.png")
+print(spplot(pmdat_extract_0116, "PM25", 
+        main = "California - PM2.5",
+        sub = "V2 Dalhousie Predictions", 
+        col = "transparent",
+        col.regions = simple.pal(20)))
+dev.off()
+```
+
+## Trying leaflet
+```{r}
+e <- as(extent(-124.5, -114, 32.6, 42), 'SpatialPolygons')
+# extent format (xmin,xmax,ymin,ymax)
+
+raster_CA <- crop(r_012016, e)
+raster_CA[raster_CA < 0] <- NA
+
+dal_v2_map <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
+              addRasterImage(raster_CA, colors = pal_DH, opacity = 0.5) %>%
+              fitBounds(-123.02407, 37.10732, -121.46928, 38.32121)
+dal_v2_map
+```
+
+## Replicating Marianthi's code with monitoring data
+
+```{r}
+e <- as(extent(-124.5, -114, 32.6, 42), 'SpatialPolygons')
+# extent format (xmin,xmax,ymin,ymax)
+
+pmdat.ca <- crop(r, e)
+pmdat.ca[pmdat.ca < 0] <- NA
+
+pal <- colorNumeric(rev(brewer.pal(n=11, name = "RdYlGn")), values(pmdat.ca),
+                    na.color = "transparent")
+dal_v2_map <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
+  addRasterImage(pmdat.ca, colors = pal, opacity = 0.5) %>%
+  addLegend(pal = pal, values = values(pmdat.ca), title = "PM2.5") %>%
+  addCircleMarkers(lng = dtam.2006$longitude, # we feed the longitude coordinates 
+                   lat = dtam.2006$latitude,
+                   radius = 3, 
+                   stroke = FALSE, 
+                   fillOpacity = 0.9, 
+                   color = pal(dtam.2006$measured )) %>%
+                   # color = pal(pmdat2$pm25 )) %>%
+  fitBounds(-123.02407, 37.10732, -121.46928, 38.32121)
+dal_v2_map
+```
+
+```{r}
+load("/Users/daniellesu/proj/capstone/CapstoneProject/Data/annual_USA_072717.RData")
+dtam.2006 <- na.omit(annual.allobs[which(annual.allobs$year == 2006 & annual.allobs$state.code == "06"), 
+                                   c("latitude", "longitude", "year", "measured")])
+rm(annual.allobs)
+
+m1 <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
+  addRasterImage(pmdat.ca, colors = pal, opacity = 0.5) %>%
+  addLegend(pal = pal, values = values(pmdat.ca),
+            title = "PM2.5") %>%
+  addCircleMarkers(lng = dtam.2006$longitude, # we feed the longitude coordinates 
+                   lat = dtam.2006$latitude,
+                   radius = 3, 
+                   stroke = FALSE, 
+                   fillOpacity = 0.9, 
+                   color = pal(dtam.2006$measured)) %>%
+  fitBounds(-123.02407, 37.10732, -121.46928, 38.32121)
+
+m1
+```
+```{r}
+m2 <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
+  # addRasterImage(pmdat.ca, colors = pal, opacity = 0.3) %>%
+  addLegend(pal = pal, values = values(pmdat.ca),
+            title = "PM2.5") %>%
+  addCircleMarkers(lng = dtam.2006$longitude, # we feed the longitude coordinates 
+                   lat = dtam.2006$latitude,
+                   radius = 4,
+                   stroke = FALSE, 
+                   fillOpacity = 1, 
+                   color = pal(dtam.2006$measured)) %>%
+  fitBounds(-123.02407, 37.10732, -121.46928, 38.32121)
+
+m2
+```
