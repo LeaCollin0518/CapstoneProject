@@ -4,4 +4,4 @@ birngInAirPoll.r
 errorsPlot.r
 *.Rproj
 .DS_Store
-Mapping/plots
+Plotting/plots
