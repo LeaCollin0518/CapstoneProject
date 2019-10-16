@@ -25,8 +25,7 @@ library(webshot)
 
 setwd("C:/Users/leac7/Documents/Columbia/Capstone/CapstoneProject/Data")
 
-epa_2016 <- read.csv('epa_data/epa_deduped_2016.csv', header = TRUE, stringsAsFactors = FALSE)
-epa_2016 <- read.csv('epa_data/epa_deduped_2016.csv', header = TRUE, colClasses = rep('character', ncol(epa_2016)))
+epa_2016 <- read.csv('epa_data/epa_deduped_2016.csv', header = TRUE, colClasses = 'character')
 epa_2016$X <- NULL # delete dummy index column
 epa_2016$Date.Local <- as.Date(epa_2016$Date.Local)
 num.columns <- c('POC', 'Latitude', 'Longitude', 'Arithmetic.Mean')
