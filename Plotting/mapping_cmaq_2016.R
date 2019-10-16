@@ -96,6 +96,7 @@ elbow_room1 <- ca_base +
 elbow_room1
 
 # TRY TO GET INTERACTIVE WORKING
+
 setwd("C:/Users/leac7/Documents/Columbia/Capstone/CapstoneProject/Data")
 
 cmaq_2016 <- fread('cmaq/2016_pm25_daily_average.txt', header = TRUE)
@@ -138,6 +139,57 @@ cal_plot <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
 
 cal_plot
 
+# 2010
+setwd("C:/Users/leac7/Documents/Columbia/Capstone/CapstoneProject/Data")
+
+cmaq_2010 <- fread('cmaq/2010_pm25_daily_average.txt', header = TRUE)
+cmaq_2010[, FIPS := as.character(FIPS)]
+cmaq_2010[, FIPS := with_options(c(scipen = 999), str_pad(FIPS, 11, "0", side = 'left'))]
+
+cmaq_2010[, fips.state := substr(FIPS, 1, 2)]
+cali_2010 <- cmaq_2010[fips.state == '06',]
+# cali_2010 <- as.data.frame(cali_2010[, Date:= as.Date(Date, format ='%b-%d-%Y')])
+
+ca_cmaq <- cali_2010 %>% dplyr::select(FIPS, Latitude, Longitude, `pm25_daily_average(ug/m3)`)
+ca_cmaq_avg <- data.frame(aggregate(ca_cmaq$`pm25_daily_average(ug/m3)`, list(ca_cmaq$Latitude, ca_cmaq$Longitude), mean))
+names(ca_cmaq_avg) <- c('Latitude','Longitude', 'mean_pm2.5')
+coordinates(ca_cmaq_avg) <- ~ Longitude + Latitude
+
+states <- rgdal::readOGR("plotting/tl_2017_us_state/tl_2017_us_state.shp")
+states <- states[states$STUSPS %in% c('CA'),] 
+bbox(states)
+
+# ignore commented out below for now
+# proj4string(ca_jan_avg)=CRS("+init=epsg:4267")
+
+# ca_jan_avg <- spTransform(ca_jan_avg, CRS("+proj=longlat +ellps=GRS80"))
+# r = raster(ca_jan_avg)
+
+# getting ground truth for palette
+ground_truth <- readRDS('epa_data/pm25_observed_2000_2016.rds')
+ca_2010 <- ground_truth %>% filter(State.Code == '06' & year(Date) == '2010')
+
+ca_epa <- ca_2010  %>% dplyr::select(uid, Latitude, Longitude, pm25_obs)
+ca_avg <- data.frame(aggregate(ca_epa$pm25_obs, list(ca_epa$Latitude, ca_epa$Longitude), mean))
+names(ca_avg) <- c('Latitude','Longitude', 'mean_pm2.5')
+coordinates(ca_avg) <- ~ Longitude + Latitude
+
+pal <- colorNumeric(rev(brewer.pal(n=11, name = "RdYlGn")), ca_avg$mean_pm2.5,
+                    na.color = "transparent")
+
+cal_plot <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
+  #addRasterImage(r, colors = pal, opacity = 0.5) %>%
+  addLegend(pal = pal, values = ca_avg$mean_pm2.5,
+            title = "PM2.5") %>%
+  addCircleMarkers(lng = ca_cmaq_avg$Longitude, # we feed the longitude coordinates 
+                   lat = ca_cmaq_avg$Latitude,
+                   radius = 5, 
+                   stroke = FALSE, 
+                   fillOpacity = 1, 
+                   color = pal(ca_cmaq_avg$mean_pm2.5)) %>%
+  fitBounds(-125.0, 34.0, -115.0, 43.0)
+
+cal_plot
 
 
 

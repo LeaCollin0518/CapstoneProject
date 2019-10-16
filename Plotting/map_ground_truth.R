@@ -25,6 +25,33 @@ library(webshot)
 
 setwd("C:/Users/leac7/Documents/Columbia/Capstone/CapstoneProject/Data")
 
+# MAPPING GROUND TRUTH FOR CALIFORNIA 2010
+ground_truth <- readRDS('epa_data/pm25_observed_2000_2016.rds')
+ca_2010 <- ground_truth %>% filter(State.Code == '06' & year(Date) == '2010')
+
+ca_epa <- ca_2010  %>% dplyr::select(uid, Latitude, Longitude, pm25_obs)
+ca_avg <- data.frame(aggregate(ca_epa$pm25_obs, list(ca_epa$Latitude, ca_epa$Longitude), mean))
+names(ca_avg) <- c('Latitude','Longitude', 'mean_pm2.5')
+coordinates(ca_avg) <- ~ Longitude + Latitude
+
+pal <- colorNumeric(rev(brewer.pal(n=11, name = "RdYlGn")), ca_avg$mean_pm2.5,
+                    na.color = "transparent")
+
+cal_truth_plot <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
+  addLegend(pal = pal, values = ca_avg$mean_pm2.5,
+            title = "PM2.5") %>%
+  addCircleMarkers(lng = ca_avg$Longitude, # we feed the longitude coordinates 
+                   lat = ca_avg$Latitude,
+                   radius = 5, 
+                   stroke = FALSE, 
+                   fillOpacity = 1, 
+                   color = pal(ca_avg$mean_pm2.5)) %>%
+  fitBounds(-125.0, 34.0, -115.0, 43.0)
+
+cal_truth_plot
+
+# MAPPING GROUND TRUTH FOR CALIFORNIA 2016
+
 epa_2016 <- read.csv('epa_data/epa_deduped_2016.csv', header = TRUE, colClasses = 'character')
 epa_2016$X <- NULL # delete dummy index column
 epa_2016$Date.Local <- as.Date(epa_2016$Date.Local)
@@ -47,7 +74,7 @@ states <- states[states$STUSPS %in% c('CA'),]
 bbox(states)
 
 
-cal_plot <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
+cal_truth_plot <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
   addLegend(pal = pal, values = ca_jan_avg$mean_pm2.5,
             title = "PM2.5") %>%
   addCircleMarkers(lng = ca_jan_avg$Longitude, # we feed the longitude coordinates 
@@ -58,4 +85,4 @@ cal_plot <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
                    color = pal(ca_jan_avg$mean_pm2.5)) %>%
   fitBounds(-125.0, 34.0, -115.0, 43.0)
 
-cal_plot
+cal_truth_plot
