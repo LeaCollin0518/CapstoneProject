@@ -26,20 +26,12 @@ library(lubridate)
 
 setwd("C:/Users/leac7/Documents/Columbia/Capstone/CapstoneProject/Data")
 
-### MAPPING PREDICTIONS FOR CALIFORNIA
-r = raster("dalhousie_v2/GWRwSPEC_PM25_NA_200010_200010-RH35-NoNegs.asc")
+# MAPPING GROUND TRUTH FOR CALIFORNIA 2010
 
-states <- rgdal::readOGR("plotting/tl_2017_us_state/tl_2017_us_state.shp")
-states <- states[states$STUSPS %in% c('CA'),] 
-bbox(states)
+model_pred <- read.csv('cali_example/model_predictions.csv', header = TRUE)
+model_pred_mean <- model_pred %>% dplyr::select(lon, lat, mean_mean)
+coordinates(model_pred_mean) <- ~ lon + lat
 
-e <- as(extent(-124.5, -114.2, 32.6, 42.1), 'SpatialPolygons')
-# extent format (xmin,xmax,ymin,ymax)
-
-pmdat.ca <- crop(r, e)
-pmdat.ca[pmdat.ca < 0] <- NA
-
-# getting ground truth for palette
 ground_truth <- readRDS('epa_data/pm25_observed_2000_2016.rds')
 ca_2010 <- ground_truth %>% filter(State.Code == '06' & year(Date) == '2010')
 
@@ -51,17 +43,15 @@ coordinates(ca_avg) <- ~ Longitude + Latitude
 pal <- colorNumeric(rev(brewer.pal(n=11, name = "RdYlGn")), ca_avg$mean_pm2.5,
                     na.color = "transparent")
 
-
-m1 <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
-  addRasterImage(pmdat.ca, colors = pal, opacity = 0.5) %>%
+cal_truth_plot <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
   addLegend(pal = pal, values = ca_avg$mean_pm2.5,
             title = "PM2.5") %>%
-  addCircleMarkers(lng = ca_avg$Longitude, # we feed the longitude coordinates 
-                   lat = ca_avg$Latitude,
-                   radius = 3, 
+  addCircleMarkers(lng = model_pred_mean$lon, # we feed the longitude coordinates 
+                   lat = model_pred_mean$lat,
+                   radius = 1, 
                    stroke = FALSE, 
-                   fillOpacity = 0.9, 
-                   color = pal(ca_avg$mean_pm2.5)) %>%
-  fitBounds(-125.0, 37.10732, -121.46928, 42.1)
+                   fillOpacity = 1, 
+                   color = pal(model_pred_mean$mean_mean)) %>%
+  fitBounds(-125.0, 34.0, -115.0, 43.0)
 
-m1
+cal_truth_plot
