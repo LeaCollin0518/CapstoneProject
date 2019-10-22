@@ -6,3 +6,5 @@ errorsPlot.r
 .DS_Store
 Plotting/plots
 Boston_Example
+.ipynb_checkpoints
+Cali_Example
