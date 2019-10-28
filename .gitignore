@@ -7,4 +7,5 @@ errorsPlot.r
 Plotting/plots
 Boston_Example
 .ipynb_checkpoints
-Cali_Example
+Cali_Example/*
+!Cali_Example/*.py
