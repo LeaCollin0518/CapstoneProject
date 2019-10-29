@@ -48,7 +48,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 _DATA_ADDR_PREFIX = "./example/data"
 
 _SAVE_ADDR_PREFIX_SUB = "./result_ca_2010_run2/calibre_2d_annual_pm25_example_ca_2010"
-_SAVE_ADDR_PREFIX = "./result_ca_2010_subsegments/calibre_2d_annual_pm25_example_ca_2010"
+_SAVE_ADDR_PREFIX = "./result_ca_2010_allsubsegments/calibre_2d_annual_pm25_example_ca_2010"
 
 _MODEL_DICTIONARY = {"root": ["AV", "GM", "GS"]}
 
@@ -68,6 +68,7 @@ for model_name in tail_free.get_leaf_model_names(_MODEL_DICTIONARY):
     base_valid_pred[model_name] = np.asarray(data_pd["pm25"].tolist()).astype(np.float32)
 
 X_valid = base_valid_feat[model_name]
+X_valid = X_valid[:120620]
 N_pred = X_valid.shape[0]
 
 # standardize
@@ -83,12 +84,12 @@ family_name = "hmc"
 family_name_full = "Hamilton MC"
 
 """ 3.1. prep: load data, compute posterior mean/sd, color config """
-with open(os.path.join(_SAVE_ADDR_PREFIX,
-                       '{}/ensemble_posterior_pred_dist_sample.pkl'.format(family_name)), 'rb') as file:
-    ensemble_sample_val = pk.load(file)
-with open(os.path.join(_SAVE_ADDR_PREFIX,
-                       '{}/ensemble_posterior_pred_mean_sample.pkl'.format(family_name)), 'rb') as file:
-    ensemble_mean_val = pk.load(file)
+# with open(os.path.join(_SAVE_ADDR_PREFIX,
+#                        '{}/ensemble_posterior_pred_dist_sample.npy'.format(family_name)), 'rb') as file:
+#     ensemble_sample_val = pk.load(file)
+# with open(os.path.join(_SAVE_ADDR_PREFIX,
+#                        '{}/ensemble_posterior_pred_mean_sample.npy'.format(family_name)), 'rb') as file:
+#     ensemble_mean_val = pk.load(file)
 # with open(os.path.join(_SAVE_ADDR_PREFIX,
 #                        '{}/ensemble_posterior_sigma_sample.pkl'.format(family_name)), 'rb') as file:
 #     sigma_sample_val = pk.load(file)
@@ -100,18 +101,18 @@ with open(os.path.join(_SAVE_ADDR_PREFIX,
 #     "noise": np.mean(np.exp(2 * sigma_sample_val)) * np.ones(shape=(ensemble_sample_val.shape[0]))
 # }
 
-post_mean_sub_dict = {
-    "overall": np.mean(ensemble_sample_val, axis=1),
-    "mean": np.mean(ensemble_mean_val, axis=1),
-    "resid": np.mean(ensemble_sample_val - ensemble_mean_val, axis=1)
-}
+# print (post_mean_sub_dict['overall'])
 
-print (post_mean_sub_dict['overall'])
+# ensemble_sample_val = np.load(_SAVE_ADDR_PREFIX + '/{}/ensemble_posterior_pred_dist_sample.npy'.format(family_name))
+# ensemble_mean_val = np.load(_SAVE_ADDR_PREFIX + '/{}/ensemble_posterior_pred_mean_sample.npy'.format(family_name))
 
-with open(os.path.join(_SAVE_ADDR_PREFIX_SUB,
+print("Loading sample")
+with open(os.path.join(_SAVE_ADDR_PREFIX,
                        '{}/ensemble_posterior_pred_dist_sample.pkl'.format(family_name)), 'rb') as file:
     ensemble_sample_val = pk.load(file)
-with open(os.path.join(_SAVE_ADDR_PREFIX_SUB,
+
+print("Loading mean")
+with open(os.path.join(_SAVE_ADDR_PREFIX,
                        '{}/ensemble_posterior_pred_mean_sample.pkl'.format(family_name)), 'rb') as file:
     ensemble_mean_val = pk.load(file)
 
@@ -121,20 +122,20 @@ post_mean_dict = {
     "resid": np.mean(ensemble_sample_val - ensemble_mean_val, axis=1)
 }
 
-print (post_mean_dict['overall'])
 
-# color_norm_pred = visual_util.make_color_norm(
-#     list(post_mean_dict.values())[:2],  # exclude "resid" vales from pal
-#     method="percentile")
+color_norm_pred = visual_util.make_color_norm(
+    list(post_mean_dict.values())[:2],  # exclude "resid" vales from pal
+    method="percentile")
 
-# """ 3.2. posterior predictive mean """
-# for mean_name, mean_value in post_mean_dict.items():
-#     save_name = os.path.join(_SAVE_ADDR_PREFIX,
-#                              '{}/ensemble_posterior_mean_{}.png'.format(
-#                                  family_name, mean_name))
-#     color_norm = visual_util.posterior_heatmap_2d(mean_value,
-#                                                   X=X_valid, X_monitor=X_train,
-#                                                   cmap='RdYlGn_r',
-#                                                   norm=color_norm_pred,
-#                                                   norm_method="percentile",
-#                                                   save_addr=save_name)
+print ("Plots")
+""" 3.2. posterior predictive mean """
+for mean_name, mean_value in post_mean_dict.items():
+    save_name = os.path.join(_SAVE_ADDR_PREFIX,
+                             '{}/ensemble_posterior_mean_{}.png'.format(
+                                 family_name, mean_name))
+    color_norm = visual_util.posterior_heatmap_2d(mean_value,
+                                                  X=X_valid, 
+                                                  cmap='RdYlGn_r',
+                                                  norm=color_norm_pred,
+                                                  norm_method="percentile",
+                                                  save_addr=save_name)

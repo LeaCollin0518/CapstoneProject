@@ -28,7 +28,7 @@ setwd("C:/Users/leac7/Documents/Columbia/Capstone/CapstoneProject/Data")
 
 # MAPPING GROUND TRUTH FOR CALIFORNIA 2010
 
-model_pred <- read.csv('cali_example/model_predictions.csv', header = TRUE)
+model_pred <- read.csv('cali_example/model_predictions_sub.csv', header = TRUE)
 model_pred_mean <- model_pred %>% dplyr::select(lon, lat, mean_mean)
 model_pred_overall <- model_pred %>% dplyr::select(lon, lat, mean_overall)
 
