@@ -47,8 +47,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 _DATA_ADDR_PREFIX = "./example/data"
 
-# _SAVE_ADDR_PREFIX_SUB = "./result_ca_2010_all/calibre_2d_annual_pm25_example_ca_2010"
-_SAVE_ADDR_PREFIX = "./result_ca_2010_allsubsegments/calibre_2d_annual_pm25_example_ca_2010"
+# _SAVE_ADDR_PREFIX_SUB = "./result_ca_2010/calibre_2d_annual_pm25_example_ca_2010"
+_SAVE_ADDR_PREFIX = "./result_ca_2010_all_subsegments/calibre_2d_annual_pm25_example_ca_2010"
 
 _MODEL_DICTIONARY = {"root": ["AV", "GM", "GS"]}
 
@@ -147,19 +147,27 @@ for fold_id, (_, pred_index) in enumerate(kf.split(X_valid)):
     ensemble_sample_val[sub_pred_index] = ensemble_sample_fold.T
     ensemble_mean_val[sub_pred_index] = ensemble_mean_fold.T
 
-  with open(os.path.join(_SAVE_ADDR_PREFIX,
-                       '{}/ensemble_posterior_pred_dist_sample_{}.pkl'.format(family_name, fold_id)), 'wb') as file:
-    pk.dump(ensemble_sample_val, file, protocol=pk.HIGHEST_PROTOCOL)
-    
-  with open(os.path.join(_SAVE_ADDR_PREFIX,
-                       '{}/ensemble_posterior_pred_mean_sample_{}.pkl'.format(family_name, fold_id)), 'wb') as file:
-    pk.dump(ensemble_mean_val, file, protocol=pk.HIGHEST_PROTOCOL)
-    
-  with open(os.path.join(_SAVE_ADDR_PREFIX,
-                       '{}/ensemble_posterior_sigma_sample_{}.pkl'.format(family_name, fold_id)), 'wb') as file:
-    pk.dump(sigma_sample_val, file, protocol=pk.HIGHEST_PROTOCOL)
+    post_uncn_dict = {
+    "overall": np.var(ensemble_sample_val, axis=1) + np.mean(np.exp(2 * sigma_sample_val)),
+    "mean": np.var(ensemble_mean_val, axis=1),
+    "resid": np.var(ensemble_sample_val - ensemble_mean_val, axis=1),
+    "noise": np.mean(np.exp(2 * sigma_sample_val)) * np.ones(shape=(ensemble_sample_val.shape[0]))
+    }
 
+    post_mean_dict = {
+        "overall": np.mean(ensemble_sample_val, axis=1),
+        "mean": np.mean(ensemble_mean_val, axis=1),
+        "resid": np.mean(ensemble_sample_val - ensemble_mean_val, axis=1)
+    }
 
+    with open(os.path.join(_SAVE_ADDR_PREFIX,
+      '{}/ensemble_uncn_dict_{}.pkl'.format(family_name, fold_id)), 'wb') as file:
+      pk.dump(post_uncn_dict, file, protocol=pk.HIGHEST_PROTOCOL)
+
+    with open(os.path.join(_SAVE_ADDR_PREFIX,
+      '{}/ensemble_mean_dict_{}.pkl'.format(family_name, fold_id)), 'wb') as file:
+      pk.dump(post_mean_dict, file, protocol=pk.HIGHEST_PROTOCOL)
+      
 print("Estimated ls_weight {:.4f}, ls_resid {:.4f}".format(
     np.exp(DEFAULT_LOG_LS_WEIGHT), np.exp(DEFAULT_LOG_LS_RESID)
 ))
@@ -183,18 +191,7 @@ print("Estimated ls_weight {:.4f}, ls_resid {:.4f}".format(
 #                        '{}/ensemble_posterior_sigma_sample.pkl'.format(family_name)), 'rb') as file:
 #     sigma_sample_val = pk.load(file)
 
-# post_uncn_dict = {
-#     "overall": np.var(ensemble_sample_val, axis=1) + np.mean(np.exp(2 * sigma_sample_val)),
-#     "mean": np.var(ensemble_mean_val, axis=1),
-#     "resid": np.var(ensemble_sample_val - ensemble_mean_val, axis=1),
-#     "noise": np.mean(np.exp(2 * sigma_sample_val)) * np.ones(shape=(ensemble_sample_val.shape[0]))
-# }
 
-# post_mean_dict = {
-#     "overall": np.mean(ensemble_sample_val, axis=1),
-#     "mean": np.mean(ensemble_mean_val, axis=1),
-#     "resid": np.mean(ensemble_sample_val - ensemble_mean_val, axis=1)
-# }
 
 
 # # prepare color norms for plt.scatter

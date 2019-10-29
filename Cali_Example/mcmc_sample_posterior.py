@@ -47,7 +47,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 _DATA_ADDR_PREFIX = "./example/data"
 
-_SAVE_ADDR_PREFIX = "./result_ca_2010_allsubsegments/calibre_2d_annual_pm25_example_ca_2010"
+_SAVE_ADDR_PREFIX = "./result_ca_2010_all_subsegments/calibre_2d_annual_pm25_example_ca_2010"
 
 _MODEL_DICTIONARY = {"root": ["AV", "GM", "GS"]}
 
@@ -151,4 +151,3 @@ parameter_samples_val = mcmc.run_sampling(mcmc_graph,
 with open(os.path.join(_SAVE_ADDR_PREFIX,
                        '{}/ensemble_posterior_train_parameter_samples_dict.pkl'.format(family_name)), 'wb') as file:
     pk.dump(parameter_samples_val, file, protocol=pk.HIGHEST_PROTOCOL)
-pip install -r requirements.txt

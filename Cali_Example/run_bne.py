@@ -47,8 +47,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 _DATA_ADDR_PREFIX = "./example/data"
 
-_SAVE_ADDR_PREFIX_SUB = "./result_ca_2010/calibre_2d_annual_pm25_example_ca_2010"
-_SAVE_ADDR_PREFIX = "./result_ca_2010_run2/calibre_2d_annual_pm25_example_ca_2010"
+# _SAVE_ADDR_PREFIX_SUB = "./result_ca_2010/calibre_2d_annual_pm25_example_ca_2010"
+_SAVE_ADDR_PREFIX = "./result_ca_2010/calibre_2d_annual_pm25_example_ca_2010"
 
 _MODEL_DICTIONARY = {"root": ["AV", "GM", "GS"]}
 
@@ -99,7 +99,7 @@ os.makedirs("{}/{}".format(_SAVE_ADDR_PREFIX, family_name),
             exist_ok=True)
 
 # load mcmc posterior samples
-with open(os.path.join(_SAVE_ADDR_PREFIX_SUB,
+with open(os.path.join(_SAVE_ADDR_PREFIX,
                        '{}/ensemble_posterior_train_parameter_samples_dict.pkl'.format(family_name)), 'rb') as file:
     parameter_samples_val = pk.load(file)
 
