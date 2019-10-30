@@ -1,86 +1,61 @@
 #!/usr/bin/env python
-# coding: utf-8
 
-import gc
 import pandas as pd
 import numpy as np
 import os
 import pickle as pk
+from collections import defaultdict
 
-training_data = pd.read_csv('./Data/cali_example/training_data_2010.csv', usecols = [1, 2, 3, 4, 5, 6])
-av = pd.read_csv('./Data/cali_example/AV_2010_align.csv', usecols = [1,2,3])
-gm = pd.read_csv('./Data/cali_example/GM_2010_align.csv', usecols = [1,2,3])
-gs = pd.read_csv('./Data/cali_example/GS_2010_align.csv', usecols = [1,2,3])
-
-training_data = training_data[~training_data['pred_GS'].isnull()]
-
-av_ = av[~av['pm25'].isnull()]
-gs_ = gs[~gs['pm25'].isnull()]
-
-indices = list(set(av_.index) & set(gs_.index))
-
-av = av.loc[indices]
-gm = gm.loc[indices]
-gs = gs.loc[indices]
-
-print(av.shape)
-
-# training_data.to_csv('./Cali_Example/example/data/training_data_2010.csv', index = False)
-# av.to_csv('./Cali_Example/example/data/AV_2010_align.csv')
-# gm.to_csv('./Cali_Example/example/data/GM_2010_align.csv')
-# gs.to_csv('./Cali_Example/example/data/GS_2010_align.csv')
+av = pd.read_csv('./Cali_Example/example/data/AV_2010_align.csv')
 
 
-### Create file to visualize BNE predictions
-num_mcmc = 5000
-
-_SAVE_ADDR_PREFIX = "./Cali_Example/result_ca_2010_allsubsegments/calibre_2d_annual_pm25_example_ca_2010"
+_SAVE_ADDR_PREFIX = "./Cali_Example/result_ca_2010_all_subsegments/calibre_2d_annual_pm25_example_ca_2010"
 family_name = 'hmc'
 
 ensemble_mean_val = []
-ensemble_sample_val = []
+ensemble_uncn_val = []
 
-sub_segs = 4
+num_subsegs = 30
 
-for i in range(sub_segs):
+for i in range(num_subsegs):
     print (i)
     with open(os.path.join(_SAVE_ADDR_PREFIX,
-                           '{}/ensemble_posterior_pred_mean_sample_{}.pkl'.format(family_name, i)), 'rb') as file:
+                           '{}/ensemble_mean_dict_{}.pkl'.format(family_name, i)), 'rb') as file:
         ensemble_mean_val.append(pk.load(file))
+        
 
     with open(os.path.join(_SAVE_ADDR_PREFIX,
-                           '{}/ensemble_posterior_pred_dist_sample_{}.pkl'.format(family_name, i)), 'rb') as file:
-        ensemble_sample_val.append(pk.load(file))
+                           '{}/ensemble_uncn_dict_{}.pkl'.format(family_name, i)), 'rb') as file:
+        ensemble_uncn_val.append(pk.load(file))
 
+num_coords = 0
+mean_dict = defaultdict()
+unc_dict = defaultdict()
 
-num_coords = ensemble_sample_val[0].shape[0]*sub_segs
+for i in range(num_subsegs):
+    num_coords += ensemble_mean_val[i]['overall'].shape[0]
 
-sample_val = np.stack(ensemble_sample_val, axis = 0).reshape(num_coords, num_mcmc)
-mean_val = np.stack(ensemble_mean_val, axis = 0).reshape(num_coords, num_mcmc)
+post_mean_dict = {'overall': None, 'mean': None, 'resid': None}
+post_uncn_dict = {'overall': None, 'mean': None, 'resid': None, 'noise': None}
 
-print(sample_val.shape)
+for key in post_mean_dict:
+    post_mean_dict[key] = np.concatenate([ensemble_mean_val[i][key] for i in range(num_subsegs)], axis = None).reshape(num_coords)
 
-# with open(os.path.join(_SAVE_ADDR_PREFIX,
-#                        '{}/ensemble_posterior_pred_dist_sample.pkl'.format(family_name)), 'wb') as file:
-#     pk.dump(sample_val, file, protocol=pk.HIGHEST_PROTOCOL)
-# with open(os.path.join(_SAVE_ADDR_PREFIX,
-#                        '{}/ensemble_posterior_pred_mean_sample.pkl'.format(family_name)), 'wb') as file:
-#     pk.dump(mean_val, file, protocol=pk.HIGHEST_PROTOCOL)
+for key in post_uncn_dict:
+    post_uncn_dict[key] = np.concatenate([ensemble_uncn_val[i][key] for i in range(num_subsegs)], axis = None).reshape(num_coords)
 
+with open(os.path.join(_SAVE_ADDR_PREFIX,
+                       '{}/ensemble_mean_dict.pkl'.format(family_name)), 'wb') as file:
+    pk.dump(post_mean_dict, file, protocol=pk.HIGHEST_PROTOCOL)
+with open(os.path.join(_SAVE_ADDR_PREFIX,
+                       '{}/ensemble_uncn_dict.pkl'.format(family_name)), 'wb') as file:
+    pk.dump(post_uncn_dict, file, protocol=pk.HIGHEST_PROTOCOL)
 
-# post_mean_dict = {
-#     "overall": np.mean(sample_val, axis=1),
-#     "mean": np.mean(mean_val, axis=1)
-#     "resid": np.mean(sample_val - mean_val, axis=1)
-# }
+av_sub = av.iloc[:num_coords]
+av_sub = av_sub.drop(['pm25'], axis = 1)
 
-# av_sub = av.iloc[:sample_val.shape[0]]
-# av_sub = av_sub.drop(['pm25'], axis = 1)
+locations = av_sub[['lat', 'lon']]
+locations['mean_overall'] = post_mean_dict['overall']
+locations['mean_mean'] = post_mean_dict['mean']
 
-# av_sub['mean_overall'] = post_mean_dict['overall']
-# av_sub['mean_mean'] = post_mean_dict['mean']
-
-# del sample_val
-# del mean_val
-
-# av_sub.to_csv('./Data/cali_example/model_predictions_subseg.csv', index = False)
+locations.to_csv('./Cali_Example/example/data/model_predictions_sub.csv', index = False)

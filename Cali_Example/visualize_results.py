@@ -48,7 +48,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 _DATA_ADDR_PREFIX = "./example/data"
 
 # _SAVE_ADDR_PREFIX_SUB = "./result_ca_2010_run2/calibre_2d_annual_pm25_example_ca_2010"
-_SAVE_ADDR_PREFIX = "./result_ca_2010_subsegments/calibre_2d_annual_pm25_example_ca_2010"
+_SAVE_ADDR_PREFIX = "./result_ca_2010_all_subsegments/calibre_2d_annual_pm25_example_ca_2010"
 
 _MODEL_DICTIONARY = {"root": ["AV", "GM", "GS"]}
 
@@ -68,7 +68,7 @@ for model_name in tail_free.get_leaf_model_names(_MODEL_DICTIONARY):
     base_valid_pred[model_name] = np.asarray(data_pd["pm25"].tolist()).astype(np.float32)
 
 X_valid = base_valid_feat[model_name]
-X_valid = X_valid[:120620]
+X_valid = X_valid[:192992]
 N_pred = X_valid.shape[0]
 
 # standardize
@@ -77,8 +77,6 @@ X_scale = np.max(X_valid, axis=0) - np.min(X_valid, axis=0)
 
 X_valid = (X_valid - X_centr) / X_scale
 X_train = (X_train - X_centr) / X_scale
-
-
 
 family_name = "hmc"
 family_name_full = "Hamilton MC"
@@ -115,7 +113,6 @@ with open(os.path.join(_SAVE_ADDR_PREFIX,
     post_uncn_dict = pk.load(file)
 
 
-
 # prepare color norms for plt.scatter
 color_norm_unc = visual_util.make_color_norm(
     list(post_uncn_dict.values())[:1],  # use "overall" and "mean" for pal
@@ -134,7 +131,7 @@ for unc_name, unc_value in post_uncn_dict.items():
                                  family_name, unc_name))
 
     color_norm = visual_util.posterior_heatmap_2d(unc_value,
-                                                  X=X_valid, X_monitor=X_train,
+                                                  X=X_valid, 
                                                   cmap='inferno_r',
                                                   norm=color_norm_unc,
                                                   norm_method="percentile",
@@ -146,7 +143,7 @@ for mean_name, mean_value in post_mean_dict.items():
                              '{}/ensemble_posterior_mean_{}.png'.format(
                                  family_name, mean_name))
     color_norm = visual_util.posterior_heatmap_2d(mean_value,
-                                                  X=X_valid, X_monitor=X_train,
+                                                  X=X_valid, 
                                                   cmap='RdYlGn_r',
                                                   norm=color_norm_pred,
                                                   norm_method="percentile",

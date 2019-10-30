@@ -76,3 +76,17 @@ gs_plot <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
             title = "PM2.5") %>%
   fitBounds(-125.0, 37.10732, -121.46928, 42.1)
 gs_plot
+
+
+bne_pred <- read.csv('Data/cali_example/model_predictions_sub.csv', header = TRUE)
+bne_pred_overall <- bne_pred %>% dplyr::select(lat, lon, mean_overall)
+
+coordinates(bne_pred_overall) =~lon+lat
+bne_pred_overall <- rasterFromXYZ(xyz=bne_pred_overall, crs="+init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+
+bne_overall_plot <- leaflet() %>% addProviderTiles(providers$Stamen.TonerLite) %>%
+  addRasterImage(bne_pred_overall, colors = pal, opacity = 0.5) %>%
+  addLegend(pal = pal, values = ca_avg$mean_pm2.5,
+            title = "PM2.5") %>%
+  fitBounds(-125.0, 37.10732, -121.46928, 42.1)
+bne_overall_plot

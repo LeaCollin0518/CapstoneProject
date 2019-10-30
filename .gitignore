@@ -9,4 +9,5 @@ Boston_Example
 .ipynb_checkpoints
 Cali_Example/*
 !Cali_Example/*.py
+create_cali_subset.ipynb
 .RHistory
