@@ -5,10 +5,10 @@ library(lubridate)
 
 combine_data <- function(ref, other, big_res_lon, big_res_lat, file_name){
   
-  # ref is the reference grid and must have 3 columns with names: year, lon, lat (in that order)
-  # other is the model being mapped to the reference grid. Must have 4 columns with names: year, lon, lat, PM25 (in that order)
-  # big_res_lon is the resolution in longitude of the model being mapped (i.e. other model). So for gmilly, this is 2.5
-  # big_res_lon is the resolution in latitude of the model being mapped (i.e. other model). So for gmilly, this is 2
+  # ref is the reference grid and must have 3 columns with names: time, x, y (in that order)
+  # other is the model being mapped to the reference grid. Must have 4 columns with names: time, x, y, PM25 (in that order)
+  # big_res_lon is the resolution in longitude of the model being mapped (i.e. other model). So for gmilly, this is 2.5, for GBD, 0.1
+  # big_res_lon is the resolution in latitude of the model being mapped (i.e. other model). So for gmilly, this is 2, for GBD, 0.1
   
   long_range  <- range(ref$x)
   long_range[1]  <- long_range[1] - big_res_lon
@@ -27,11 +27,11 @@ combine_data <- function(ref, other, big_res_lon, big_res_lat, file_name){
   other_coords <- other %>% select(x, y) %>% unique()
   
   for(i in 1:nrow(other_coords)){
-    ref_sub <- ref %>% select(year, x, y) %>% 
+    ref_sub <- ref %>% select(time, x, y) %>% 
                 filter(between(x, other_coords$x[i] - big_res_lon/2, other_coords$x[i] + big_res_lon/2),
                        between(y, other_coords$y[i] - big_res_lat/2, other_coords$y[i] + big_res_lat/2)) 
-    other_sub <- other %>% filter(x==other_coords$x[i], y==other_coords$y[i]) %>% select(year, PM25)
-    ref_sub <- ref_sub %>% left_join(other_sub, c("year"="year"))
+    other_sub <- other %>% filter(x==other_coords$x[i], y==other_coords$y[i]) %>% select(time, PM25)
+    ref_sub <- ref_sub %>% left_join(other_sub, c("time"="time"))
     
     if(nrow(ref_sub)>0){
       result[counter:(counter - 1 + nrow(ref_sub)),] <- as.matrix(ref_sub)
@@ -40,9 +40,9 @@ combine_data <- function(ref, other, big_res_lon, big_res_lat, file_name){
   }
   
   result <- data.frame(result)
-  names(result) <- c("year", "lon", "lat", "pm25")
+  names(result) <- c("time", "lon", "lat", "pm25")
   result <- result %>% filter(!is.na(lon))
-  result <- result %>% select(year, lat, lon, pm25) %>% data.frame()
+  result <- result %>% select(time, lat, lon, pm25) %>% data.frame()
   
   write.csv(result, file_name)
 }
@@ -51,18 +51,13 @@ combine_data <- function(ref, other, big_res_lon, big_res_lat, file_name){
 
 # Use Dalhousie as the reference grid. Put into the right structure for the combine_data function
 dal <- read.csv("../../Data/grid_mapping/clean_models/dh_ca_annual_2010.csv")
-dal <- rbind(dal, dal)
-dal$year <- 2010
-dal <- dal %>% select(year, x, y)
+dal$time <- 2010
+dal <- dal %>% select(time, x, y)
 
 # Use GM as the other model. Put into the right form
 gmilly <- na.omit(readRDS("../../Data/grid_mapping/clean_models/gmilly.rds"))
-gmilly$year <- year(gmilly$date)
-gmilly <- gmilly %>% group_by(year, lat, lon) %>% 
-            summarise(pm25 = mean(pm25))
-gmilly <- gmilly %>% select(year, lon, lat, pm25) %>% rename(x=lon, y=lat) %>% data.frame()
-gmilly$x <- gmilly$x - 360
-names(gmilly) <- names(dal)
+gmilly$time <- year(gmilly$date)
+gmilly <- gmilly %>% group_by(time, x, y) %>% 
+            summarise(PM25 = mean(PM25)) %>% data.frame()
 
 combine_data(dal, gmilly, 2.5, 2, "GM_align_fake.csv")
-
