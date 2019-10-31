@@ -52,6 +52,3 @@ gmilly_combined <- gmilly_combined %>% rename(x=lon, y=lat, PM25=pm25)
 gmilly_combined$x <- gmilly_combined$x - 360
 saveRDS(gmilly_combined, "../../Data/grid_mapping/clean_models/gmilly.rds")
 
-check <- test2 %>% inner_join(test1, c("year", "lat", "lon"))
-
-
