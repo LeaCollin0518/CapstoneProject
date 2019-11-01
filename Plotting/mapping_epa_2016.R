@@ -27,37 +27,6 @@ library(data.table)
 
 setwd("C:/Users/leac7/Documents/Columbia/Capstone/CapstoneProject/Data")
 
-# EXPLORATORY ANALYSIS - CAN PROBABLY IGNORE
-improve <- read.delim("improve_data/improve_2000_2016.txt", sep = ",", header = TRUE, stringsAsFactors = FALSE)
-improve <- as.data.table(read.csv('improve_data/improve_2000_2016.txt', header = TRUE, sep = ',', colClasses = rep("character", ncol(improve))))
-
-improve$POC <- as.numeric(improve$POC)
-improve$Date <- as.Date(improve$Date, "%Y/%m/%d") 
-improve$Latitude <- as.numeric(improve$Latitude)
-improve$Longitude <- as.numeric(improve$Longitude)
-improve$MF.Value <- as.numeric(improve$MF.Value)
-
-daily_2016 <- read.csv('epa_data/daily_88101_2016.csv', header = TRUE, stringsAsFactors = FALSE)
-daily_2015 <- read.csv('epa_data/daily_88101_2015.csv', header = TRUE)
-daily_2006 <- read.csv('epa_data/daily_88101_2006.csv', header = TRUE)
-
-
-daily_2006 <- read.csv('epa_data/daily_88101_2006.csv', header = TRUE)
-
-daily_2006 <- read.csv('epa_data/daily_88101_2006.csv', header = TRUE)
-
-improve <- improve[POC == 1, ]
-
-# finding no duplicates
-improve <- improve[, has.multiple.records := .N > 1, by = list(State, CountyFIPS, SiteCode, Date)]
-num_dups <- improve[has.multiple.records == TRUE, .N]
-
-num_missing_pm <- improve[MF.Value == -999, .N]
-
-improve <- as.data.frame(improve)
-improve$has.multiple.records <- NULL
-
-
 # EXAMPLE MAPPING
 fips_codes <- read.csv('fips_codes.csv', header = TRUE, stringsAsFactors = FALSE)
 fips_codes <- read.csv('fips_codes.csv', header = TRUE, colClasses = rep('character', ncol(fips_codes)))
