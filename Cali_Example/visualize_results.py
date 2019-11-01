@@ -42,13 +42,14 @@ from calibre.util.inference import make_value_setter
 
 import matplotlib.pyplot as plt
 import seaborn as sns
+from collections import defaultdict
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 _DATA_ADDR_PREFIX = "./example/data"
 
 # _SAVE_ADDR_PREFIX_SUB = "./result_ca_2010_run2/calibre_2d_annual_pm25_example_ca_2010"
-_SAVE_ADDR_PREFIX = "./result_ca_2010_all_subsegments/calibre_2d_annual_pm25_example_ca_2010"
+_SAVE_ADDR_PREFIX = "./result_ca_2010/calibre_2d_annual_pm25_example_ca_2010"
 
 _MODEL_DICTIONARY = {"root": ["AV", "GM", "GS"]}
 
@@ -83,10 +84,10 @@ family_name_full = "Hamilton MC"
 
 """ 3.1. prep: load data, compute posterior mean/sd, color config """
 # with open(os.path.join(_SAVE_ADDR_PREFIX,
-#                        '{}/ensemble_posterior_pred_dist_sample.npy'.format(family_name)), 'rb') as file:
+#                        '{}/ensemble_posterior_pred_dist_sample.pkl'.format(family_name)), 'rb') as file:
 #     ensemble_sample_val = pk.load(file)
 # with open(os.path.join(_SAVE_ADDR_PREFIX,
-#                        '{}/ensemble_posterior_pred_mean_sample.npy'.format(family_name)), 'rb') as file:
+#                        '{}/ensemble_posterior_pred_mean_sample.pkl'.format(family_name)), 'rb') as file:
 #     ensemble_mean_val = pk.load(file)
 # with open(os.path.join(_SAVE_ADDR_PREFIX,
 #                        '{}/ensemble_posterior_sigma_sample.pkl'.format(family_name)), 'rb') as file:
@@ -97,6 +98,12 @@ family_name_full = "Hamilton MC"
 #     "mean": np.var(ensemble_mean_val, axis=1),
 #     "resid": np.var(ensemble_sample_val - ensemble_mean_val, axis=1),
 #     "noise": np.mean(np.exp(2 * sigma_sample_val)) * np.ones(shape=(ensemble_sample_val.shape[0]))
+# }
+
+# post_mean_dict = {
+#     "overall": np.mean(ensemble_sample_val, axis=1),
+#     "mean": np.mean(ensemble_mean_val, axis=1),
+#     "resid": np.mean(ensemble_sample_val - ensemble_mean_val, axis=1)
 # }
 
 # print (post_mean_sub_dict['overall'])
@@ -112,39 +119,63 @@ with open(os.path.join(_SAVE_ADDR_PREFIX,
                        '{}/ensemble_uncn_dict.pkl'.format(family_name)), 'rb') as file:
     post_uncn_dict = pk.load(file)
 
+with open(os.path.join(_SAVE_ADDR_PREFIX,
+                       '{}/ensemble_weights.pkl'.format(family_name)), 'rb') as file:
+    weights = pk.load(file)
+
+weights_dict = defaultdict()
+for i, model in enumerate(_MODEL_DICTIONARY['root']):
+  weights_dict[model] = weights[:, i]
 
 # prepare color norms for plt.scatter
-color_norm_unc = visual_util.make_color_norm(
-    list(post_uncn_dict.values())[:1],  # use "overall" and "mean" for pal
+color_norm_weights = visual_util.make_color_norm(
+    list(weights_dict.values())[:1],  
     method="percentile")
-color_norm_ratio = visual_util.make_color_norm(
-    post_uncn_dict["noise"] / post_uncn_dict["overall"],
-    method="percentile")
-color_norm_pred = visual_util.make_color_norm(
-    list(post_mean_dict.values())[:2],  # exclude "resid" vales from pal
-    method="percentile")
+
+for model_name, model_weight in weights_dict.items():
+    save_name = os.path.join(_SAVE_ADDR_PREFIX,
+                             '{}/ensemble_weights_val_{}.png'.format(
+                                 family_name, model_name))
+
+    color_norm = visual_util.posterior_heatmap_2d(model_weight,
+                                                  X=X_valid, X_monitor=X_train,
+                                                  cmap='viridis',
+                                                  norm=color_norm_weights,
+                                                  norm_method="percentile",
+                                                  save_addr=save_name)
+
+# prepare color norms for plt.scatter
+# color_norm_unc = visual_util.make_color_norm(
+#     list(post_uncn_dict.values())[:1],  # use "overall" and "mean" for pal
+#     method="percentile")
+# color_norm_ratio = visual_util.make_color_norm(
+#     post_uncn_dict["noise"] / post_uncn_dict["overall"],
+#     method="percentile")
+# color_norm_pred = visual_util.make_color_norm(
+#     list(post_mean_dict.values())[:2],  # exclude "resid" vales from pal
+#     method="percentile")
 
 """ 3.1. posterior predictive uncertainty """
-for unc_name, unc_value in post_uncn_dict.items():
-    save_name = os.path.join(_SAVE_ADDR_PREFIX,
-                             '{}/ensemble_posterior_uncn_{}.png'.format(
-                                 family_name, unc_name))
+# for unc_name, unc_value in post_uncn_dict.items():
+#     save_name = os.path.join(_SAVE_ADDR_PREFIX,
+#                              '{}/ensemble_posterior_uncn_{}.png'.format(
+#                                  family_name, unc_name))
 
-    color_norm = visual_util.posterior_heatmap_2d(unc_value,
-                                                  X=X_valid, 
-                                                  cmap='inferno_r',
-                                                  norm=color_norm_unc,
-                                                  norm_method="percentile",
-                                                  save_addr=save_name)
+#     color_norm = visual_util.posterior_heatmap_2d(unc_value,
+#                                                   X=X_valid, X_monitor = X_train,
+#                                                   cmap='inferno_r',
+#                                                   norm=color_norm_unc,
+#                                                   norm_method="percentile",
+#                                                   save_addr=save_name)
 
-""" 3.2. posterior predictive mean """
-for mean_name, mean_value in post_mean_dict.items():
-    save_name = os.path.join(_SAVE_ADDR_PREFIX,
-                             '{}/ensemble_posterior_mean_{}.png'.format(
-                                 family_name, mean_name))
-    color_norm = visual_util.posterior_heatmap_2d(mean_value,
-                                                  X=X_valid, 
-                                                  cmap='RdYlGn_r',
-                                                  norm=color_norm_pred,
-                                                  norm_method="percentile",
-                                                  save_addr=save_name)
+# """ 3.2. posterior predictive mean """
+# for mean_name, mean_value in post_mean_dict.items():
+#     save_name = os.path.join(_SAVE_ADDR_PREFIX,
+#                              '{}/ensemble_posterior_mean_{}.png'.format(
+#                                  family_name, mean_name))
+#     color_norm = visual_util.posterior_heatmap_2d(mean_value,
+#                                                   X=X_valid, X_monitor = X_train,
+#                                                   cmap='RdYlGn_r',
+#                                                   norm=color_norm_pred,
+#                                                   norm_method="percentile",
+#                                                   save_addr=save_name)

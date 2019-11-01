@@ -130,4 +130,3 @@ for model_name, model_weight in weights_dict.items():
                                                   norm=color_norm_weights,
                                                   norm_method="percentile",
                                                   save_addr=save_name)
-
