@@ -36,16 +36,19 @@ parse_nc <- function(ncname, dname){
 }
 
 year <- 2004
-ncname <- paste0("PM25_2004-2011_USA/PM25_24hr_",year,"_Base_USA")
+ncname <- paste0("../../Data/grid_mapping/clean_models/pre_clean/PM25_2004-2011_USA/PM25_24hr_",year,"_Base_USA")
 dname <- "PM25_24hr"  # note: tmp means temperature (not temporary)
 gmilly_combined <- parse_nc(ncname, dname)
 
 for(year in 2005:2011){
-  ncname <- paste0("PM25_2004-2011_USA/PM25_24hr_",year,"_Base_USA")
+  ncname <- paste0("../../Data/grid_mapping/clean_models/pre_clean/PM25_2004-2011_USA/PM25_24hr_",year,"_Base_USA")
   new_year <- parse_nc(ncname, dname)
   gmilly_combined <- rbind(gmilly_combined , new_year)
 }
 
 gmilly_combined$date <- as.Date(gmilly_combined$date, "%m/%d/%y")
-saveRDS(gmilly_combined, "gmilly.rds")
+
+gmilly_combined <- gmilly_combined %>% rename(x=lon, y=lat, PM25=pm25)
+gmilly_combined$x <- gmilly_combined$x - 360
+saveRDS(gmilly_combined, "../../Data/grid_mapping/clean_models/gmilly.rds")
 
