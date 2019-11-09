@@ -101,10 +101,8 @@ def main(argv):
 
   """ 3. standardize data """
   # standardize
-
-  #from training 
-  X_centr = np.array([-120.17419,37.123833])
-  X_scale = np.array([10.269997,9.470001])
+  X_centr = np.mean(X_valid, axis=0)
+  X_scale = np.max(X_valid, axis=0) - np.min(X_valid, axis=0)
 
   X_valid = (X_valid - X_centr) / X_scale
   X_train = (X_train - X_centr) / X_scale
