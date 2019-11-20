@@ -11,9 +11,8 @@ for i in `seq 2000 2016`; do
 done
 
 for zipfile in *zip; do
-	unzip "${zipfile}"
+	y=${zipfile%.zip}
+	unzip "${zipfile}" -d $y
 	rm "${zipfile}"
 
 done
-
-rm *.prj
