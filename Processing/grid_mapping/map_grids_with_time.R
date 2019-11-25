@@ -1,5 +1,9 @@
-setwd("/Users/hammaadadam/Desktop/Columbia/Courses/Capstone/CapstoneProject/Processing/grid_mapping")
-library(extracat)
+# setwd("/Users/hammaadadam/Desktop/Columbia/Courses/Capstone/CapstoneProject/Processing/grid_mapping")
+#setwd("C:/Users/leac7/Documents/Columbia/Capstone/CapstoneProject")
+.libPaths(c("/rigel/dsi/users/lc3362/rpackages/", .libPaths()))
+setwd("/rigel/dsi/projects/bne/")
+
+#library(extracat)
 library(tidyverse)
 library(lubridate)
 
@@ -27,10 +31,11 @@ combine_data <- function(ref, other, big_res_lon, big_res_lat, file_name){
   other_coords <- other %>% select(x, y) %>% unique()
   
   for(i in 1:nrow(other_coords)){
+    print (i)
     ref_sub <- ref %>% select(time, x, y) %>% 
                 filter(between(x, other_coords$x[i] - big_res_lon/2, other_coords$x[i] + big_res_lon/2),
                        between(y, other_coords$y[i] - big_res_lat/2, other_coords$y[i] + big_res_lat/2)) 
-    other_sub <- other %>% filter(x==other_coords$x[i], y==other_coords$y[i]) %>% select(time, PM25)
+    other_sub <- other %>% filter(x==other_coords$x[i], y==other_coords$y[i]) %>% select(time, pm25)
     ref_sub <- ref_sub %>% left_join(other_sub, c("time"="time"))
     
     if(nrow(ref_sub)>0){
@@ -48,16 +53,40 @@ combine_data <- function(ref, other, big_res_lon, big_res_lat, file_name){
 }
 
 #### Example
+years <- seq(2010, 2016)
+
+args <- commandArgs(trailingOnly = TRUE)
+index <- as.numeric(args[1])
+curr_year <- years[index]
+
+dal_name <- 'Data/nationwide/AV_'
+dal_name <- paste0(dal_name, curr_year)
+dal_name <- paste0(dal_name, '_align.csv')
+
+print (dal_name)
+
 
 # Use Dalhousie as the reference grid. Put into the right structure for the combine_data function
-dal <- read.csv("../../Data/grid_mapping/clean_models/dh_ca_annual_2010.csv")
-dal$time <- 2010
+dal <- read.csv(dal_name)
+names(dal) <- c('x', 'y', 'pm25')
+dal$time <- curr_year
 dal <- dal %>% select(time, x, y)
+print (nrow(dal))
 
-# Use GM as the other model. Put into the right form
-gmilly <- na.omit(readRDS("../../Data/grid_mapping/clean_models/gmilly.rds"))
-gmilly$time <- year(gmilly$date)
-gmilly <- gmilly %>% group_by(time, x, y) %>% 
-            summarise(PM25 = mean(PM25)) %>% data.frame()
+# Map GBD
+gbd <- read.csv('Data/GBD/gbd_2000_2016.csv')
+gbd$X <- NULL
+names(gbd) <- c('x', 'y', 'pm25', 'time')
+gbd_year <- gbd %>% filter(time == curr_year)
+gbd_year <- gbd_year %>% group_by(time, x, y) %>% summarise(pm25 = mean(pm25)) %>% data.frame()
 
-combine_data(dal, gmilly, 2.5, 2, "GM_align_fake.csv")
+new_file <- 'Data/nationwide/GBD_'
+new_file <- paste0(new_file, curr_year)
+new_file <- paste0(new_file, '_align.csv')
+print (new_file)
+
+start_time <- Sys.time()
+combine_data(dal, gbd_year, 0.1, 0.1, new_file)
+end_time <- Sys.time()
+
+print (end_time - start_time)
