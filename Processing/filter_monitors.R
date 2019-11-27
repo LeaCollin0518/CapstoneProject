@@ -27,7 +27,7 @@ for(year in years){
   observed <- observed %>% group_by(Longitude, Latitude) %>% summarise(pm25_obs = mean(pm25_obs))
   observed <- observed %>% rename(x=Longitude, y=Latitude) %>% data.frame()
   observed$time <- year
-  observed <- observed %>% select(time, x, y, pm25_obs)
+  observed <- observed %>% select(time, x, y, pm25_obs) %>% data.frame()
   filename <- paste0("../Data/filtered_monitors/pm25_observed_", year, ".csv")
-  write.csv(observed, filename)
+  write.csv(observed, filename, row.names = FALSE)
 }
