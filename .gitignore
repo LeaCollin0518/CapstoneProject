@@ -13,3 +13,4 @@ create_cali_subset.ipynb
 .RHistory
 Images/
 Processing/grid_mapping/map_grids.sh
+*.csv
