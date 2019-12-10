@@ -9,12 +9,13 @@ import math
 
 # In[2]:
 
+data_dir = "/rigel/dsi/projects/bne/CA_with_AV_GBD_CMAQ/example/data/"
+save_dir = data_dir
+#data_dir = '../../Data/nationwide_v2/'
+#save_dir = '../../Data/nationwide_subsets_v3/'
 
-data_dir = '../Data/nationwide/'
-save_dir = '../Data/nationwide_subsets_v3/'
 
-
-intersecting_av_gbd_scott = pd.read_csv('{}predictions_2010_2016.csv'.format(data_dir))
+intersecting_av_gbd_scott = pd.read_csv('{}CA_predictions_2010_2016_AV_GBD_CMAQ.csv'.format(data_dir))
 
 one_year = intersecting_av_gbd_scott.loc[intersecting_av_gbd_scott.time == 2010]
 
@@ -67,23 +68,23 @@ def get_splits(X_val, num_splits):
     
     return lon_range, lat_range
 
-lon_range, lat_range = get_splits(X_valid, 50)
+lon_range, lat_range = get_splits(X_valid, 10)
 
 
-intersecting_av_gbd_scott = intersecting_av_gbd_scott[['lon', 'lat', 'time', 'pred_AV', 'pred_SC', 'pred_GS', 'pred_CM']]
+intersecting_av_gbd_scott = intersecting_av_gbd_scott[['lon', 'lat', 'time', 'pred_AV', 'pred_GS', 'pred_CM']]
 
-full_data = pd.DataFrame(columns=['lon', 'lat', 'time', 'pred_AV', 'pred_SC', 'pred_GS', 'pred_CM'])
+full_data = pd.DataFrame(columns=['lon', 'lat', 'time', 'pred_AV', 'pred_GS', 'pred_CM'])
 model = intersecting_av_gbd_scott
-all_models = ['AV', 'SC', 'GS', 'CM']
+all_models = ['AV', 'GS', 'CM']
 subset_num = 0
 subset_shapes = []
 
-most_recent_subset = pd.DataFrame(columns=['lon', 'lat', 'pred_AV', 'pred_SC', 'pred_GS', 'pred_CM'])
+most_recent_subset = pd.DataFrame(columns=['lon', 'lat', 'pred_AV', 'pred_GS', 'pred_CM'])
 
 for i in range(len(lat_range)):
     for j in range(len(lon_range)):
         df_subset = model.loc[(model.lon >= lon_range[j][0]) & (model.lon <= lon_range[j][1]) & (model.lat >= lat_range[i][0]) & (model.lat <= lat_range[i][1])]
-        df_subset = df_subset[['lon', 'lat', 'time', 'pred_AV', 'pred_SC', 'pred_GS', 'pred_CM']]
+        df_subset = df_subset[['lon', 'lat', 'time', 'pred_AV', 'pred_GS', 'pred_CM']]
         if (df_subset.shape[0] != 0):
             if (df_subset.shape[0] > 800):
                 most_recent_subset = df_subset
@@ -105,7 +106,10 @@ for i in range(len(lat_range)):
                 print ("DF Subset: " + str(df_subset.shape))
                 most_recent_subset = most_recent_subset.append(df_subset)
                 print (most_recent_subset.shape)
-                subset_shapes.pop()
+                try:
+                    subset_shapes.pop()
+                except:
+	                pass
                 subset_shapes.append(most_recent_subset.shape[0])
                 full_data = full_data.append(most_recent_subset)
                 for m in all_models:
